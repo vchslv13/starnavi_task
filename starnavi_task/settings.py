@@ -101,6 +101,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# substitute the custom user model
+AUTH_USER_MODEL = 'social_network.User'
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
