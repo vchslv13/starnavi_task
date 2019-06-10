@@ -50,6 +50,14 @@ class UserViewSetTests(TestCase):
                               content_type='application/json')
         self.assertEqual(res.status_code, 401)
 
+    def test_unauthenticated_users_can_signup(self):
+        test_data = {'email': 'test_email@email.com', 'username': 'test_name',
+                     'full_name': 'test_fullname', 'password': 'test_password'}
+        res = self.client.post(reverse('user-list'), data=test_data,
+                               content_type='application/json')
+        self.assertEqual(res.status_code, 201)
+        self.assertIsNotNone(User.objects.get(email=test_data['email']))
+
 
 class PostViewSetTests(TestCase):
     def setUp(self):
