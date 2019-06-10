@@ -1,7 +1,10 @@
-from django.urls import reverse
+from urllib.parse import urlparse
+
+from django.urls import reverse, resolve
 from django.test import TestCase
 from django.utils import dateparse
-from social_network.models import User
+
+from social_network.models import Post, User
 
 
 class UserViewSetTests(TestCase):
@@ -40,6 +43,52 @@ class UserViewSetTests(TestCase):
                      'full_name': 'test_fullname'}
 
         res = self.client.patch(path, data={'email': test_data['email']},
+                                content_type='application/json')
+        self.assertEqual(res.status_code, 401)
+
+        res = self.client.put(path, data=test_data,
+                              content_type='application/json')
+        self.assertEqual(res.status_code, 401)
+
+
+class PostViewSetTests(TestCase):
+    def setUp(self):
+        usr1 = User.objects.create_user(
+            username='test1', email='test1@email.com', password='test1_pass')
+        usr2 = User.objects.create_user(
+            username='test2', email='test2@email.com', password='test2_pass')
+        post1 = Post.objects.create(text='Test text 1', author=usr1)
+        post2 = Post.objects.create(text='Test text 2', author=usr1)
+        post3 = Post.objects.create(text='Test text 3', author=usr2)
+        self.posts = [post1, post2, post3]
+
+    def test_unauthenticated_users_retrieve_posts_list(self):
+        response = self.client.get(reverse('post-list'))
+        self.assertEqual(len(response.json()), len(self.posts))
+
+        post_ids = {post.id for post in self.posts}
+        res_post_ids = {post['id'] for post in response.json()}
+        self.assertEqual(post_ids, res_post_ids)
+
+    def test_unauthenticated_users_retrieve_post_detail(self):
+        post = self.posts[0]
+        path = reverse('post-detail', kwargs={'pk': post.id})
+        res_json = self.client.get(path).json()
+
+        self.assertEqual(res_json['id'], post.id)
+        self.assertEqual(res_json['text'], post.text)
+
+        author_path = reverse('user-detail', kwargs={'pk': post.author.id})
+        self.assertEqual(urlparse(res_json['author']).path,
+                         author_path)
+
+    def test_unauthenticated_users_cant_update_post_detail(self):
+        post = self.posts[0]
+        path = reverse('post-detail', kwargs={'pk': post.id})
+        author_url = reverse('user-detail', kwargs={'pk': post.author.id})
+        test_data = {'text': 'Test text X', 'author': author_url}
+
+        res = self.client.patch(path, data={'text': test_data['text']},
                                 content_type='application/json')
         self.assertEqual(res.status_code, 401)
 
