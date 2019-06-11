@@ -31,6 +31,14 @@ class PostViewSet(ModelViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
 
+    def update(self, request, pk=None, *args, **kwargs):
+        post = get_object_or_404(Post, pk=pk)
+        # allow changing the post only by it's author
+        if post.author == request.user:
+            return super().update(request, *args, **kwargs)
+        else:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
     @action(detail=True, methods=['post'], url_name='like',
             permission_classes=[IsAuthenticated])
     def like_post(self, request, pk=None):

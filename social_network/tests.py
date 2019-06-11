@@ -166,6 +166,26 @@ class PostViewSetTests(TestCase):
         self.client.post(unlike_url, **auth_header)
         self.assertNotIn(user, post.liked_by_users.all())
 
+    def test_user_cant_change_another_users_post(self):
+        user1, user2 = self.users
+        post = user2.post_set.all()[0]
+        initial_post_text = post.text
+        user1_auth = get_authorization_header(self.client, user1)
+
+        # check initial state
+        post_detail_url = reverse('post-detail', args=[post.id])
+        r = self.client.get(post_detail_url, **user1_auth)
+        self.assertEqual(r.json()['text'], initial_post_text)
+
+        # try changing the information
+        r = self.client.patch(
+            post_detail_url, data={'text': 'very_bad_text'},
+            content_type='application/json', **user1_auth)
+        self.assertEqual(r.status_code, 401)
+
+        del post.text
+        self.assertEqual(post.text, initial_post_text)
+
 
 def get_authorization_header(client, user):
     """Get authorization header for user using the passed client."""
