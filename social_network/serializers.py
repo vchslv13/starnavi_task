@@ -23,4 +23,9 @@ class PostSerializer(HyperlinkedModelSerializer):
         model = Post
         fields = ('url', 'id', 'text', 'author', 'creation_datetime',
                   'liked_by_users',)
-        read_only_fields = ('liked_by_users', 'creation_datetime',)
+        read_only_fields = ('liked_by_users', 'creation_datetime', 'author')
+
+    def create(self, validated_data):
+        # use author information from the request
+        return Post.objects.create(author=self.context['request'].user,
+                                   **validated_data)

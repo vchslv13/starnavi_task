@@ -22,6 +22,6 @@ from social_network.urls import urlpatterns
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(urlpatterns)),
-    path('api/token/', TokenObtainPairView.as_view()),
-    path('api/token/refresh/', TokenRefreshView.as_view())
+    path('api/token/', TokenObtainPairView.as_view(), name='token-obtain'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token-refresh')
 ]
