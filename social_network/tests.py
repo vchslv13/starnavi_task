@@ -11,8 +11,10 @@ class UserViewSetTests(TestCase):
     def setUp(self):
         usr1 = User.objects.create_user(
             username='test1', email='test1@email.com', password='test1_pass')
+        usr1.raw_password = 'test1_pass'
         usr2 = User.objects.create_user(
             username='test2', email='test2@email.com', password='test2_pass')
+        usr2.raw_password = 'test2_pass'
         self.users = [usr1, usr2]
 
     def test_unauthenticated_users_retrieve_user_list(self):
@@ -57,6 +59,25 @@ class UserViewSetTests(TestCase):
                                content_type='application/json')
         self.assertEqual(res.status_code, 201)
         self.assertIsNotNone(User.objects.get(email=test_data['email']))
+
+    def test_user_cant_change_another_users_info(self):
+        user1, user2 = self.users
+        initial_user2_username = user2.username
+        user1_auth = get_authorization_header(self.client, user1)
+
+        # check initial state
+        usr2_detail_url = reverse('user-detail', args=[user2.id])
+        r = self.client.get(usr2_detail_url, **user1_auth)
+        self.assertEqual(r.json()['username'], initial_user2_username)
+
+        # try changing the information
+        r = self.client.patch(
+            usr2_detail_url, data={'username': 'very_bad_name'},
+            content_type='application/json', **user1_auth)
+        self.assertEqual(r.status_code, 401)
+
+        del user2.username  # refresh field value from DB
+        self.assertEqual(user2.username, initial_user2_username)
 
 
 class PostViewSetTests(TestCase):
