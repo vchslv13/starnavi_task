@@ -110,21 +110,36 @@ class PostViewSetTests(TestCase):
 
     def test_authenticated_user_creates_post_associated_with_him(self):
         user = self.users[0]
-
-        # obtain authorization token
-        response = self.client.post(
-            reverse('token-obtain'),
-            data={'username': user.username, 'password': user.raw_password},
-            content_type='application/json'
-        )
-        token = response.json()['access']
-        headers = {'HTTP_AUTHORIZATION': f'Bearer {token}'}
+        auth_header = get_authorization_header(self.client, user)
 
         # create post and check the result
         post = {'text': 'this is a test'}
         response = self.client.post(reverse('post-list'), data=post,
-                                    content_type='application/json', **headers)
+                                    content_type='application/json',
+                                    **auth_header)
         self.assertEqual(response.status_code, 201)
         post_id = int(response.json()['id'])
         post = Post.objects.get(pk=post_id)
         self.assertEqual(post.author.id, user.id)
+
+    def test_authenticated_user_likes_post(self):
+        user = self.users[0]
+        auth_header = get_authorization_header(self.client, user)
+
+        post = self.posts[2]
+        self.assertNotIn(user, post.liked_by_users.all())
+        like_url = reverse('post-like', kwargs={'pk': post.id})
+        self.client.post(like_url, **auth_header)
+        self.assertIn(user, post.liked_by_users.all())
+
+
+def get_authorization_header(client, user):
+    """Get authorization header for user using the passed client."""
+    # obtain authorization token
+    response = client.post(
+        reverse('token-obtain'),
+        data={'username': user.username, 'password': user.raw_password},
+        content_type='application/json'
+    )
+    token = response.json()['access']
+    return {'HTTP_AUTHORIZATION': f'Bearer {token}'}
