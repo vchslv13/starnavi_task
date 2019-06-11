@@ -33,3 +33,14 @@ class PostViewSet(ModelViewSet):
         else:
             post.liked_by_users.add(request.user)
             return Response({'status': 'like set'})
+
+    @action(detail=True, methods=['post'], url_name='unlike',
+            permission_classes=[IsAuthenticated])
+    def unlike_post(self, request, pk=None):
+        post = get_object_or_404(Post, pk=pk)
+        user = request.user
+        if not post.liked_by_users.filter(pk=user.pk):
+            return Response({'status': 'post was not liked'})
+        else:
+            post.liked_by_users.remove(request.user)
+            return Response({'status': 'post unliked'})

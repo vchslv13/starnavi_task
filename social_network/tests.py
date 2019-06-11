@@ -132,6 +132,19 @@ class PostViewSetTests(TestCase):
         self.client.post(like_url, **auth_header)
         self.assertIn(user, post.liked_by_users.all())
 
+    def test_authenticated_user_unlikes_post(self):
+        user = self.users[0]
+        auth_header = get_authorization_header(self.client, user)
+
+        post = self.posts[2]
+        like_url = reverse('post-like', kwargs={'pk': post.id})
+        self.client.post(like_url, **auth_header)
+        self.assertIn(user, post.liked_by_users.all())
+
+        unlike_url = reverse('post-unlike', kwargs={'pk': post.id})
+        self.client.post(unlike_url, **auth_header)
+        self.assertNotIn(user, post.liked_by_users.all())
+
 
 def get_authorization_header(client, user):
     """Get authorization header for user using the passed client."""
