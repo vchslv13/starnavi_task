@@ -1,7 +1,8 @@
 from urllib.parse import urlparse
 
-from django.urls import reverse, resolve
+from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import dateparse
 
 from social_network.models import Post, User
@@ -185,6 +186,34 @@ class PostViewSetTests(TestCase):
 
         del post.text
         self.assertEqual(post.text, initial_post_text)
+
+    def test_user_can_create_post(self):
+        user = self.users[0]
+        intial_amount_of_posts = len(user.post_set.all())
+        user_auth = get_authorization_header(self.client, user)
+        r = self.client.post(reverse('post-list'), data={'text': 'test text'},
+                             content_type='application/json', **user_auth)
+        self.assertEqual(len(user.post_set.all()), intial_amount_of_posts + 1)
+
+        try:
+            Post.objects.get(pk=int(r.json()['id']))
+        except ObjectDoesNotExist:
+            raise AssertionError('post was not created')
+
+    def test_user_can_update_post(self):
+        user = self.users[0]
+        post = user.post_set.all()[0]
+        user_auth = get_authorization_header(self.client, user)
+        new_text = 'new text'
+
+        post_detail_url = reverse('post-detail', args=[post.id])
+        r = self.client.patch(
+            post_detail_url, data={'text': new_text},
+            content_type='application/json', **user_auth)
+
+        self.assertEqual(r.status_code, 200)
+        del post.text
+        self.assertEqual(post.text, new_text)
 
 
 def get_authorization_header(client, user):
