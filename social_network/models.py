@@ -10,6 +10,7 @@ class User(AbstractUser):
     last_name = None
     email = fields.EmailField(unique=True)
     full_name = fields.CharField(max_length=250)
+    is_active = fields.BooleanField(default=False)
 
 
 class Post(models.Model):

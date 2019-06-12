@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
@@ -5,13 +6,25 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from redis import Redis
+from rq import Queue
+
 from social_network.models import Post, User
 from social_network.serializers import PostSerializer, UserSerializer
+from social_network.utils import verify_email
 
 
 class UserViewSet(ModelViewSet):
     serializer_class = UserSerializer
     queryset = User.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        if response.status_code == 201:
+            user = User.objects.get(email=request.data['email'])
+            q = Queue(connection=Redis())
+            q.enqueue(verify_email, user, settings.EMAILHUNTER_API_KEY)
+        return response
 
     def update(self, request, pk=None, *args, **kwargs):
         user = get_object_or_404(User, pk=pk)
